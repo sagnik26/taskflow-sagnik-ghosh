@@ -1,5 +1,4 @@
-# Optional dev backend: full deps + tsx watch (see entrypoint DEV_WATCH=1).
-# docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# For local development: full deps + tsx watch (see entrypoint DEV_WATCH=1).
 
 services:
   backend:
