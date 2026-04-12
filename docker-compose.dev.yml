@@ -1,0 +1,11 @@
+# Optional dev backend: full deps + tsx watch (see entrypoint DEV_WATCH=1).
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    environment:
+      NODE_ENV: development
+      DEV_WATCH: "1"

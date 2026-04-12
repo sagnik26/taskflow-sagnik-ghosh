@@ -1,21 +1,33 @@
-# --- deps ---
+# --- install all deps  ---
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json ./
-RUN npm install --omit=dev
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# --- runtime ---
+# --- compile TypeScript ---
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json package-lock.json tsconfig.json ./
+COPY server.ts ./
+COPY shared ./shared
+RUN npm run build
+
+# --- production runtime ---
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-RUN addgroup --system --gid 1001 nodejs \
+RUN apk add --no-cache postgresql-client \
+  && addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 --ingroup nodejs nodejs
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json ./
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+COPY --from=build /app/dist ./dist
 COPY node-pg-migrate.json ./
 COPY migrations ./migrations
-COPY server.js ./
+COPY seed.sql ./
 COPY scripts/entrypoint.sh ./scripts/entrypoint.sh
 
 RUN chmod +x scripts/entrypoint.sh \
