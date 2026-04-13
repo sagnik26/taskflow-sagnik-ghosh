@@ -54,7 +54,21 @@ cd backend && cp .env.example .env && cd ..
 docker compose up --build
 ```
 
+- In **`backend/`**, run **`npm install`** if you are not using Docker.
+
+- In **`frontend/`**, run **`npm install`** if you are not using Docker.
+
 API will run on **PORT 4000**
+
+### PostgreSQL in pgAdmin (Docker Compose)
+
+- Open **http://localhost:8080/**.
+
+- Sign in with **email** `admin@example.com` and **password** `admin`.
+
+- Then add a new server: **name** `taskflow`, **host** `postgres`, **username** `postgres`, **password** `postgres`, then click **Save**.
+
+- You can see tables under **taskflow** → **Databases** → **taskflow** → **Schemas** → **public** → **Tables**.
 
 ---
 
