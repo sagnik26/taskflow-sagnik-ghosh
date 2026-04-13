@@ -12,8 +12,6 @@ RUN npm ci \
   && rm -rf /var/lib/apt/lists/*
 
 COPY tsconfig.json server.ts ./
-COPY shared ./shared
-COPY modules ./modules
 COPY src ./src
 COPY node-pg-migrate.json ./
 COPY migrations ./migrations

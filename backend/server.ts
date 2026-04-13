@@ -1,6 +1,6 @@
-import config from "./shared/config";
-import logger from "./shared/config/logger";
-import { getPool } from "./shared/db";
+import config from "./src/shared/config";
+import logger from "./src/shared/config/logger";
+import { getPool } from "./src/shared/db";
 import app from "./src/app";
 
 const { port } = config;

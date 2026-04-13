@@ -3,12 +3,12 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
 
-import errorHandler from "../shared/middlewares/errorHandler";
-import requestLogger from "../shared/middlewares/requestLogger";
-import authRouter from "../modules/auth/routes/auth.routes";
-import projectsRouter from "../modules/projects/routes/projects.routes";
-import tasksRouter from "../modules/tasks/routes/tasks.routes";
-import ResponseFormatter from "../shared/utils/responseFormatter";
+import errorHandler from "./shared/middlewares/errorHandler";
+import requestLogger from "./shared/middlewares/requestLogger";
+import authRouter from "./modules/auth/routes/auth.routes";
+import projectsRouter from "./modules/projects/routes/projects.routes";
+import tasksRouter from "./modules/tasks/routes/tasks.routes";
+import ResponseFormatter from "./shared/utils/responseFormatter";
 
 const app = express();
 
