@@ -135,7 +135,7 @@ The backend serves **Swagger UI** at **`/api-docs`** (full URL when running loca
 
 ### Postman
 
-A Postman Collection file is available at [`postman/taskflow-sagnik-ghosh.postman_collection.json`](./postman/taskflow-sagnik-ghosh.postman_collection.json). Import it into Postman to quickly try all endpoints.
+A Postman Collection file is available at [`backend/docs/taskflow-sagnik-ghosh.postman_collection.json`](./backend/docs/taskflow-sagnik-ghosh.postman_collection.json). Import it into Postman to quickly try all endpoints.
 
 **Auth:** Primarily relies on the **`authToken`** cookie set by `POST /auth/register` and `POST /auth/login`. If not found, it falls back to `Authorization: Bearer <your-jwt>`. In Postman, when you hit login or register, if cookie is set properly, you can run authenticated routes directly without setting Authorization.
 
