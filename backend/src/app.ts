@@ -5,6 +5,7 @@ import helmet from "helmet";
 
 import errorHandler from "./shared/middlewares/errorHandler";
 import requestLogger from "./shared/middlewares/requestLogger";
+import { swaggerDocsMiddleware } from "./shared/swagger/swaggerDocs";
 import authRouter from "./modules/auth/routes/auth.routes";
 import projectsRouter from "./modules/projects/routes/projects.routes";
 import tasksRouter from "./modules/tasks/routes/tasks.routes";
@@ -36,6 +37,8 @@ app.get("/health", (_req, res) => {
     ),
   );
 });
+
+app.use("/api-docs", ...swaggerDocsMiddleware);
 
 app.use("/auth", authRouter);
 app.use("/projects", projectsRouter);

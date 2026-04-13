@@ -32,6 +32,8 @@ services:
     container_name: taskflow-backend
     tty: true
     stdin_open: true
+    env_file:
+      - ./backend/.env
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -41,13 +43,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-taskflow}
-      JWT_SECRET: ${JWT_SECRET:-taskflow-local-dev-jwt-secret-min-32-chars}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
-      PASSWORD_MIN_LENGTH: ${PASSWORD_MIN_LENGTH:-8}
-      PASSWORD_REQUIRE_UPPERCASE: "${PASSWORD_REQUIRE_UPPERCASE:-true}"
-      PASSWORD_REQUIRE_LOWERCASE: "${PASSWORD_REQUIRE_LOWERCASE:-true}"
-      PASSWORD_REQUIRE_NUMBERS: "${PASSWORD_REQUIRE_NUMBERS:-true}"
-      PASSWORD_REQUIRE_SYMBOLS: "${PASSWORD_REQUIRE_SYMBOLS:-true}"
       RUN_SEED: "${RUN_SEED:-1}"
     ports:
       - "${BACKEND_PORT:-4000}:4000"

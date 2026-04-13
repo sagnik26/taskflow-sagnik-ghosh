@@ -54,3 +54,12 @@ export type UpdateProjectInput = {
   description?: string | null;
 };
 
+/** Task counts for a project (dashboard / analytics). */
+export type ProjectTaskStats = {
+  byStatus: Record<TaskRow["status"], number>;
+  byAssignee: Array<{
+    assigneeId: string | null;
+    count: number;
+  }>;
+};
+

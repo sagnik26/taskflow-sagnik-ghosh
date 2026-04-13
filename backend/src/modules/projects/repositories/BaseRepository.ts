@@ -36,5 +36,11 @@ export abstract class BaseRepository {
   ): Promise<ProjectRow | null>;
   abstract deleteById(projectId: string): Promise<boolean>;
   abstract listTasksForProject(projectId: string): Promise<TaskRow[]>;
+  abstract countTasksByStatusForProject(
+    projectId: string,
+  ): Promise<Array<{ status: TaskRow["status"]; count: number }>>;
+  abstract countTasksByAssigneeForProject(
+    projectId: string,
+  ): Promise<Array<{ assignee_id: string | null; count: number }>>;
 }
 

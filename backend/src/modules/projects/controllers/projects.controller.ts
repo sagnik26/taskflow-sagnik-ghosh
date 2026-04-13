@@ -90,6 +90,26 @@ export class ProjectsController {
     }
   }
 
+  async getProjectStats(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ error: "unauthorized" });
+        return;
+      }
+
+      const projectId = this.readParamId(req.params.id);
+      const stats = await this.projectsService.getProjectStats(userId, projectId);
+      res.status(200).json(ResponseFormatter.success(stats, "Project stats fetched"));
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async updateProject(
     req: Request,
     res: Response,

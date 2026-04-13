@@ -24,6 +24,10 @@ router.post(
   },
 );
 
+router.get("/:id/stats", authenticate, (req, res, next) => {
+  void projectsController.getProjectStats(req, res, next);
+});
+
 router.get("/:id", authenticate, (req, res, next) => {
   void projectsController.getProjectDetail(req, res, next);
 });

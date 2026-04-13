@@ -1,10 +1,12 @@
 import logger from "../../../shared/config/logger";
+import { TaskStatus } from "../../../shared/constants/tasks";
 import { AppError } from "../../../shared/utils/AppError";
 import { ProjectsRepository } from "../repositories/projects.repository";
 import type {
   CreateProjectInput,
   Project,
   ProjectDetail,
+  ProjectTaskStats,
   ProjectRow,
   TaskRow,
   UpdateProjectInput,
@@ -102,6 +104,50 @@ export class ProjectsService {
       ...this.toProject(project),
       tasks: tasks.map((t) => this.toTask(t)),
     };
+  }
+
+  async getProjectStats(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectTaskStats> {
+    const project = await this.projectsRepository.findById(projectId);
+    if (!project) {
+      throw new AppError("not found", 404);
+    }
+
+    const allowed = await this.projectsRepository.canUserAccessProject(
+      userId,
+      projectId,
+    );
+    if (!allowed) {
+      throw new AppError("forbidden", 403);
+    }
+
+    const [statusRows, assigneeRows] = await Promise.all([
+      this.projectsRepository.countTasksByStatusForProject(projectId),
+      this.projectsRepository.countTasksByAssigneeForProject(projectId),
+    ]);
+
+    const byStatus: ProjectTaskStats["byStatus"] = {
+      [TaskStatus.Todo]: 0,
+      [TaskStatus.InProgress]: 0,
+      [TaskStatus.Done]: 0,
+    };
+
+    for (const row of statusRows) {
+      if (row.status in byStatus) {
+        byStatus[row.status] = row.count;
+      }
+    }
+
+    const byAssignee = assigneeRows.map((row) => ({
+      assigneeId: row.assignee_id,
+      count: row.count,
+    }));
+
+    logger.info("Project stats fetched", { projectId, userId });
+
+    return { byStatus, byAssignee };
   }
 
   async updateProject(

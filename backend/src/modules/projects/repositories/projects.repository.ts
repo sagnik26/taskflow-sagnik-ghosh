@@ -149,4 +149,39 @@ export class ProjectsRepository extends BaseRepository {
     );
     return result.rows;
   }
+
+  async countTasksByStatusForProject(
+    projectId: string,
+  ): Promise<Array<{ status: TaskRow["status"]; count: number }>> {
+    const result = await this.query<
+      { status: TaskRow["status"]; count: number } & QueryResultRow
+    >(
+      `
+      SELECT status, COUNT(*)::int AS count
+      FROM tasks
+      WHERE project_id = $1
+      GROUP BY status
+      `,
+      [projectId],
+    );
+    return result.rows;
+  }
+
+  async countTasksByAssigneeForProject(
+    projectId: string,
+  ): Promise<Array<{ assignee_id: string | null; count: number }>> {
+    const result = await this.query<
+      { assignee_id: string | null; count: number } & QueryResultRow
+    >(
+      `
+      SELECT assignee_id, COUNT(*)::int AS count
+      FROM tasks
+      WHERE project_id = $1
+      GROUP BY assignee_id
+      ORDER BY count DESC, assignee_id NULLS LAST
+      `,
+      [projectId],
+    );
+    return result.rows;
+  }
 }
