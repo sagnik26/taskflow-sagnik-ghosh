@@ -1,70 +1,42 @@
 import type { NextFunction, Request, Response } from "express";
+import type { ZodType } from "zod";
 
-type FieldRules = {
-  required?: boolean;
-  minLength?: number;
-  custom?: (
-    value: unknown,
-    body: Record<string, unknown>,
-  ) => string | null | undefined;
-};
+type AnyZodSchema = ZodType<unknown>;
 
-export type ValidationSchema = Record<string, FieldRules>;
+function isZodSchema(schema: unknown): schema is AnyZodSchema {
+  return (
+    typeof schema === "object" &&
+    schema !== null &&
+    "safeParse" in schema &&
+    typeof (schema as { safeParse?: unknown }).safeParse === "function"
+  );
+}
 
-/**
- * Validates `req.body` keys against simple per-field rules.
- * On failure responds with `{ error: "validation failed", fields }`.
- */
 const validate =
-  (schema: ValidationSchema | null | undefined) =>
+  (schema: AnyZodSchema | null | undefined) =>
   (req: Request, res: Response, next: NextFunction): void => {
     if (!schema) {
       next();
       return;
     }
 
-    const fields: Record<string, string> = {};
-    const body = (req.body ?? {}) as Record<string, unknown>;
-
-    for (const [field, rules] of Object.entries(schema)) {
-      const value = body[field];
-
-      if (
-        rules.required &&
-        (value === undefined || value === null || value === "")
-      ) {
-        fields[field] = "is required";
-        continue;
-      }
-
-      const parts: string[] = [];
-
-      if (
-        rules.minLength != null &&
-        typeof value === "string" &&
-        value.length < rules.minLength
-      ) {
-        parts.push(`must be at least ${rules.minLength} characters`);
-      }
-
-      if (rules.custom) {
-        const customErr = rules.custom(value, body);
-        if (customErr) parts.push(customErr);
-      }
-
-      if (parts.length > 0) {
-        fields[field] = parts.join("; ");
-      }
-    }
-
-    if (Object.keys(fields).length > 0) {
-      res.status(400).json({
-        error: "validation failed",
-        fields,
-      });
+    if (!isZodSchema(schema)) {
+      res.status(500).json({ error: "internal server error" });
       return;
     }
 
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      const fields: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        const key = issue.path.join(".") || "body";
+        fields[key] = issue.message;
+      }
+      res.status(400).json({ error: "validation failed", fields });
+      return;
+    }
+
+    req.body = result.data as unknown;
     next();
   };
 

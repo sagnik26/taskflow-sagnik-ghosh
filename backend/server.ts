@@ -1,68 +1,9 @@
 import config from "./shared/config";
-import express from "express";
-import cookieParser from "cookie-parser";
-import errorHandler from "./shared/middlewares/errorHandler";
-import authRouter from "./modules/auth/routes/auth.routes";
 import logger from "./shared/config/logger";
-import helmet from "helmet";
-import cors from "cors";
-import ResponseFormatter from "./shared/utils/responseFormatter";
 import { getPool } from "./shared/db";
+import app from "./src/app";
 
-const app = express();
 const { port } = config;
-
-/**
- * Middleware
- */
-app.use(helmet());
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  }),
-);
-app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.path}`, {
-    ip: req.ip,
-    userAgent: req.headers["user-agent"],
-  });
-  next();
-});
-
-/**
- * health check endpoint
- */
-app.get("/health", (_req, res) => {
-  res.status(200).json(
-    ResponseFormatter.success(
-      {
-        status: "healthy",
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-      },
-      "Service is healthy",
-    ),
-  );
-});
-
-/**
- * API Routes
- */
-app.use("/auth", authRouter);
-
-/**
- * 404 handler
- */
-app.use((_req, res) => {
-  res.status(404).json({ error: "not found" });
-});
-
-app.use(errorHandler);
 
 async function startServer() {
   try {

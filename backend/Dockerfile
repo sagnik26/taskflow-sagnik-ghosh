@@ -12,6 +12,7 @@ COPY package.json package-lock.json tsconfig.json ./
 COPY server.ts ./
 COPY shared ./shared
 COPY modules ./modules
+COPY src ./src
 RUN npm run build
 
 # --- production runtime ---

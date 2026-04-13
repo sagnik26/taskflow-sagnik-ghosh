@@ -14,6 +14,7 @@ RUN npm ci \
 COPY tsconfig.json server.ts ./
 COPY shared ./shared
 COPY modules ./modules
+COPY src ./src
 COPY node-pg-migrate.json ./
 COPY migrations ./migrations
 COPY seed.sql ./

@@ -1,27 +1,18 @@
-import type { ValidationSchema } from "../../../shared/middlewares/validate";
+import { z } from "zod";
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_PATTERN =
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function invalidEmailMessage(value: unknown): string | undefined {
-  if (typeof value !== "string" || !EMAIL_PATTERN.test(value)) {
-    return "invalid email format";
-  }
-  return undefined;
-}
+export const registerBodySchema = z.object({
+  name: z.string().min(1, "name is required"),
+  email: z.string().regex(EMAIL_PATTERN, "invalid email format"),
+  password: z.string().min(1, "password is required"),
+});
 
-export const registerBodySchema: ValidationSchema = {
-  name: { required: true, minLength: 1 },
-  email: {
-    required: true,
-    custom: (value) => invalidEmailMessage(value),
-  },
-  password: { required: true },
-};
+export const loginBodySchema = z.object({
+  email: z.string().regex(EMAIL_PATTERN, "invalid email format"),
+  password: z.string().min(1, "password is required"),
+});
 
-export const loginBodySchema: ValidationSchema = {
-  email: {
-    required: true,
-    custom: (value) => invalidEmailMessage(value),
-  },
-  password: { required: true },
-};
+export type RegisterBody = z.infer<typeof registerBodySchema>;
+export type LoginBody = z.infer<typeof loginBodySchema>;

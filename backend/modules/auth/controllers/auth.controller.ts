@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import config from "../../../shared/config";
 import ResponseFormatter from "../../../shared/utils/responseFormatter";
 import type { AuthService } from "../services/auth.service";
+import type { LoginBody, RegisterBody } from "../validators/auth.validator";
 
 export class AuthController {
   constructor(private readonly authService: AuthService) {
@@ -25,11 +26,7 @@ export class AuthController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const { name, email, password } = req.body as {
-        name: string;
-        email: string;
-        password: string;
-      };
+      const { name, email, password } = req.body as RegisterBody;
       const result = await this.authService.register({
         name,
         email,
@@ -52,10 +49,7 @@ export class AuthController {
 
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email, password } = req.body as {
-        email: string;
-        password: string;
-      };
+      const { email, password } = req.body as LoginBody;
       const result = await this.authService.login(email, password);
       this.setAuthCookie(res, result.token);
       res

@@ -30,12 +30,6 @@ function isAccessTokenPayload(
 }
 
 function readToken(req: Request): string | null {
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith("Bearer ")) {
-    const value = authHeader.slice("Bearer ".length).trim();
-    if (value) return value;
-  }
-
   const cookies = (req as Request & { cookies?: Record<string, string> })
     .cookies;
   if (cookies?.token) {
@@ -43,6 +37,12 @@ function readToken(req: Request): string | null {
   }
   if (cookies?.authToken) {
     return cookies.authToken;
+  }
+
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    const value = authHeader.slice("Bearer ".length).trim();
+    if (value) return value;
   }
 
   return null;
