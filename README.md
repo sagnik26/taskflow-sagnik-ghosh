@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-**TaskFlow** is a full-stack task management application: users can register, sign in, manage projects, and work with tasks (assignment, status, and filters are part of the product direction). **The frontend is not built yet**—use the API directly with Postman or Swagger UI.
+**TaskFlow** is a full-stack task management application: users can register, sign in, manage projects, and work with tasks. **The frontend is not built yet**—use the API directly with Postman or Swagger UI.
 
 **Tech stack (backend)**
 
