@@ -38,6 +38,9 @@ function readToken(req: Request): string | null {
 
   const cookies = (req as Request & { cookies?: Record<string, string> })
     .cookies;
+  if (cookies?.token) {
+    return cookies.token;
+  }
   if (cookies?.authToken) {
     return cookies.authToken;
   }
@@ -46,7 +49,7 @@ function readToken(req: Request): string | null {
 }
 
 /**
- * Middleware to authenticate requests using JWT (Bearer token or authToken cookie).
+ * Middleware to authenticate requests using JWT (Bearer token or token/authToken cookie).
  */
 const authenticate = (
   req: Request,

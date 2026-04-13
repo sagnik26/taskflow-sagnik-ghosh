@@ -24,6 +24,29 @@ class ResponseFormatter {
   }
 
   /**
+   * Formats an error response with a message, status code, and optional error details.
+   */
+  static error(
+    message = "Error",
+    statusCode = 500,
+    error: unknown = null,
+  ): {
+    success: false;
+    message: string;
+    error: unknown;
+    statusCode: number;
+    timestamp: string;
+  } {
+    return {
+      success: false,
+      message,
+      error,
+      statusCode,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
    * Formats a paginated response with data and pagination details.
    */
   static paginated<T = unknown>(

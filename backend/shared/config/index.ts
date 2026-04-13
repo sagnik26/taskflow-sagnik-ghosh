@@ -29,6 +29,13 @@ const config = {
     expiresIn: process.env.JWT_EXPIRES_IN || "24h",
   },
 
+  // Cookie settings
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    expiresIn: 24 * 60 * 60 * 1000,
+  },
+
   // Password validation
   password: {
     minLength: parseInt(process.env.PASSWORD_MIN_LENGTH || "8", 10),

@@ -17,6 +17,7 @@
     "server.ts",
     "shared/**/*.ts",
     "modules/**/*.ts",
+    "types/**/*.d.ts",
     "src/**/*.ts"
   ],
   "exclude": ["node_modules", "dist"]

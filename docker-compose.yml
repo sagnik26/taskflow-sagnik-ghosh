@@ -57,31 +57,6 @@ services:
     networks:
       - taskflow-network
     restart: unless-stopped
-    develop:
-      watch:
-        - action: sync+restart
-          path: ./backend
-          target: /app
-          ignore:
-            - node_modules/
-            - dist/
-            - package.json
-            - package-lock.json
-            - Dockerfile
-            - Dockerfile.dev
-            - .dockerignore
-            - .env
-            - .git/
-            - docs/
-            - "*.md"
-        - action: rebuild
-          path: ./backend/package.json
-        - action: rebuild
-          path: ./backend/package-lock.json
-        - action: rebuild
-          path: ./backend/Dockerfile
-        - action: rebuild
-          path: ./backend/Dockerfile.dev
 
   frontend:
     build:

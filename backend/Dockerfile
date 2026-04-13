@@ -11,6 +11,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json tsconfig.json ./
 COPY server.ts ./
 COPY shared ./shared
+COPY modules ./modules
 RUN npm run build
 
 # --- production runtime ---
