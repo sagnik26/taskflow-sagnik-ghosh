@@ -1,6 +1,6 @@
 import type { BackendSuccessResponse } from "../../types";
 
-export function unwrapSuccess<T>(payload: unknown): T {
+export function extractResponseData<T>(payload: unknown): T {
   if (
     typeof payload === "object" &&
     payload !== null &&

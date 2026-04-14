@@ -1,5 +1,5 @@
 import { apiClient } from "../shared/http/client";
-import { unwrapSuccess } from "../shared/utils/apiResponse";
+import { extractResponseData } from "../shared/utils/apiResponse";
 import type { Task, TaskPriority, TaskStatus } from "../types";
 
 export type ListTasksFilters = {
@@ -17,7 +17,7 @@ export async function listTasks(
       assignee: filters.assignee,
     },
   });
-  return unwrapSuccess<Task[]>(res.data);
+  return extractResponseData<Task[]>(res.data);
 }
 
 export type CreateTaskPayload = {
@@ -34,7 +34,7 @@ export async function createTask(
   payload: CreateTaskPayload,
 ): Promise<Task> {
   const res = await apiClient.post(`/projects/${projectId}/tasks`, payload);
-  return unwrapSuccess<Task>(res.data);
+  return extractResponseData<Task>(res.data);
 }
 
 export type UpdateTaskPayload = Partial<CreateTaskPayload>;
@@ -44,7 +44,7 @@ export async function updateTask(
   payload: UpdateTaskPayload,
 ): Promise<Task> {
   const res = await apiClient.patch(`/tasks/${taskId}`, payload);
-  return unwrapSuccess<Task>(res.data);
+  return extractResponseData<Task>(res.data);
 }
 
 export async function deleteTask(taskId: string): Promise<void> {

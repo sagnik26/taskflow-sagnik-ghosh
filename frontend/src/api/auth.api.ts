@@ -1,5 +1,5 @@
 import { apiClient } from "../shared/http/client";
-import { unwrapSuccess } from "../shared/utils/apiResponse";
+import { extractResponseData } from "../shared/utils/apiResponse";
 import type { User } from "../types";
 
 export type RegisterPayload = {
@@ -17,18 +17,18 @@ type AuthResult = { token: string; user: User };
 
 export async function register(payload: RegisterPayload): Promise<User> {
   const res = await apiClient.post("/auth/register", payload);
-  const data = unwrapSuccess<AuthResult>(res.data);
+  const data = extractResponseData<AuthResult>(res.data);
   return data.user;
 }
 
 export async function login(payload: LoginPayload): Promise<User> {
   const res = await apiClient.post("/auth/login", payload);
-  const data = unwrapSuccess<AuthResult>(res.data);
+  const data = extractResponseData<AuthResult>(res.data);
   return data.user;
 }
 
 export async function getProfile(): Promise<User> {
   const res = await apiClient.get("/auth/profile");
-  return unwrapSuccess<User>(res.data);
+  return extractResponseData<User>(res.data);
 }
 
