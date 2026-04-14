@@ -29,11 +29,33 @@ export type CreateTaskPayload = {
   dueDate?: string | null; // YYYY-MM-DD
 };
 
+type BackendCreateOrUpdateTaskBody = {
+  title?: string;
+  description?: string | null;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  assignee_id?: string | null;
+  due_date?: string | null;
+};
+
+function toBackendTaskBody(
+  payload: CreateTaskPayload | UpdateTaskPayload,
+): BackendCreateOrUpdateTaskBody {
+  return {
+    title: payload.title,
+    description: payload.description,
+    status: payload.status,
+    priority: payload.priority,
+    assignee_id: payload.assigneeId,
+    due_date: payload.dueDate,
+  };
+}
+
 export async function createTask(
   projectId: string,
   payload: CreateTaskPayload,
 ): Promise<Task> {
-  const res = await apiClient.post(`/projects/${projectId}/tasks`, payload);
+  const res = await apiClient.post(`/projects/${projectId}/tasks`, toBackendTaskBody(payload));
   return extractResponseData<Task>(res.data);
 }
 
@@ -43,7 +65,7 @@ export async function updateTask(
   taskId: string,
   payload: UpdateTaskPayload,
 ): Promise<Task> {
-  const res = await apiClient.patch(`/tasks/${taskId}`, payload);
+  const res = await apiClient.patch(`/tasks/${taskId}`, toBackendTaskBody(payload));
   return extractResponseData<Task>(res.data);
 }
 

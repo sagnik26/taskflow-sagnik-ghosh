@@ -15,7 +15,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../../modules/auth/context/useAuth.ts";
 import { getProject } from "../../api/projects.api";
-import { createTask, deleteTask, listTasks, updateTask } from "../../api/tasks.api";
+import {
+  createTask,
+  deleteTask,
+  listTasks,
+  updateTask,
+} from "../../api/tasks.api";
 import { toApiError } from "../../shared/utils/apiErrors";
 import { EmptyState } from "../../shared/ui/EmptyState";
 import { ErrorState } from "../../shared/ui/ErrorState";
@@ -42,19 +47,26 @@ export function ProjectDetailPage() {
     enabled: Boolean(projectId),
   });
 
-  const tasksQuery = useQuery({
-    queryKey: ["tasks", projectId],
-    queryFn: () => listTasks(projectId),
-    enabled: Boolean(projectId),
-  });
-
   const [filters, setFilters] = useState<{
     status: TaskStatus | "all";
     assignee: TaskAssigneeFilter;
   }>({ status: "all", assignee: "all" });
 
+  const tasksQuery = useQuery({
+    queryKey: ["tasks", projectId, filters],
+    queryFn: () =>
+      listTasks(projectId, {
+        status: filters.status === "all" ? undefined : filters.status,
+        // Backend only accepts a UUID here; "unassigned" is handled client-side below.
+        assignee: filters.assignee === "me" ? currentUserId : undefined,
+      }),
+    enabled: Boolean(projectId),
+  });
+
   const [taskModalOpen, setTaskModalOpen] = useState(false);
-  const [taskModalMode, setTaskModalMode] = useState<"create" | "edit">("create");
+  const [taskModalMode, setTaskModalMode] = useState<"create" | "edit">(
+    "create",
+  );
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [tasksActionError, setTasksActionError] = useState<string | null>(null);
 
@@ -64,14 +76,11 @@ export function ProjectDetailPage() {
 
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
-      if (filters.status !== "all" && t.status !== filters.status) return false;
-      if (filters.assignee === "me" && t.assigneeId !== currentUserId)
-        return false;
       if (filters.assignee === "unassigned" && t.assigneeId !== null)
         return false;
       return true;
     });
-  }, [currentUserId, filters.assignee, filters.status, tasks]);
+  }, [filters.assignee, tasks]);
 
   const createTaskMutation = useMutation({
     mutationFn: (payload: Omit<Task, "id">) => {
@@ -102,11 +111,13 @@ export function ProjectDetailPage() {
     onMutate: async ({ taskId, patch }) => {
       setTasksActionError(null);
       await queryClient.cancelQueries({ queryKey: ["tasks", projectId] });
-      const previous = queryClient.getQueryData(["tasks", projectId]) as
-        | Task[]
-        | undefined;
+      const previous = queryClient.getQueryData([
+        "tasks",
+        projectId,
+        filters,
+      ]) as Task[] | undefined;
       if (previous) {
-        queryClient.setQueryData(["tasks", projectId], (curr) => {
+        queryClient.setQueryData(["tasks", projectId, filters], (curr) => {
           const list = (curr as Task[] | undefined) ?? [];
           return list.map((t) => (t.id === taskId ? { ...t, ...patch } : t));
         });
@@ -115,9 +126,17 @@ export function ProjectDetailPage() {
     },
     onError: (error, _vars, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(["tasks", projectId], context.previous);
+        queryClient.setQueryData(
+          ["tasks", projectId, filters],
+          context.previous,
+        );
       }
-      setTasksActionError(toApiError(error).message);
+      const apiError = toApiError(error);
+      setTasksActionError(
+        apiError.kind === "forbidden"
+          ? "You don’t have permission to update this task."
+          : apiError.message,
+      );
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
@@ -221,7 +240,9 @@ export function ProjectDetailPage() {
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             Tasks
           </Typography>
-          {tasksActionError ? <Alert severity="error">{tasksActionError}</Alert> : null}
+          {tasksActionError ? (
+            <Alert severity="error">{tasksActionError}</Alert>
+          ) : null}
           <TaskFilters
             status={filters.status}
             assignee={filters.assignee}
@@ -288,4 +309,3 @@ export function ProjectDetailPage() {
     </Box>
   );
 }
-

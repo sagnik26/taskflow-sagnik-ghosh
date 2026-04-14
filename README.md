@@ -2,9 +2,16 @@
 
 ## 1. Overview
 
-**TaskFlow** is a full-stack task management application: users can register, sign in, manage projects, and work with tasks. **The frontend is not built yet**—use the API directly with Postman or Swagger UI.
+**TaskFlow** is a full-stack task management application: users can register, sign in, manage projects, and work with tasks via a React UI (plus a documented REST API).
 
-**Tech stack (backend)**
+**Frontend highlights**
+
+- **Authentication:** Login/Register forms with client-side validation and clear error handling; session persists across refresh.
+- **Projects:** Browse projects you can access, open a project detail view.
+- **Tasks (per project):** Create/edit tasks in a modal, delete tasks (when authorized), filter tasks by **status** and **assignee** (all / me / unassigned), and update task **status** with optimistic UI.
+- **UX states:** Loading, empty, and error states are explicitly rendered (no blank screens).
+
+**Tech stack**
 
 | Layer      | Technology                                                                                                |
 | ---------- | --------------------------------------------------------------------------------------------------------- |
@@ -13,7 +20,8 @@
 | Auth       | **bcrypt** (cost 12), **JWT** (`user_id`, `email`); **`Authorization: Bearer`** or **`authToken`** cookie |
 | Validation | **zod**                                                                                                   |
 | Logging    | **winston**                                                                                               |
-| Run / DB   | **Docker Compose** (Postgres + API; optional **pgAdmin**)                                                 |
+| Frontend   | **React 18**, TypeScript, **Vite**, **MUI**, **TanStack Query**                                           |
+| Run / DB   | **Docker Compose** (Postgres + API + frontend; optional **pgAdmin**)                                      |
 
 ---
 
@@ -54,11 +62,17 @@ cd backend && cp .env.example .env && cd ..
 docker compose up --build
 ```
 
+- Frontend will be available at **http://localhost:3000** (nginx serves the SPA).
+
+- Backend API will be available at **http://localhost:4000**.
+
+- The frontend container is configured to **proxy API requests** (so the browser calls the frontend origin, which forwards to the backend). In practice, the UI uses `/api/...` paths through nginx, keeping local CORS/simple networking predictable.
+
+**Local development without Docker (optional)**
+
 - In **`backend/`**, run **`npm install`** if you are not using Docker.
 
 - In **`frontend/`**, run **`npm install`** if you are not using Docker.
-
-API will run on **PORT 4000**
 
 ### PostgreSQL in pgAdmin (Docker Compose)
 
@@ -137,6 +151,21 @@ After seed runs (`RUN_SEED=1` in Docker by default), log in without registering:
 ## 7. API Reference
 
 **Base URL:** `http://localhost:4000`
+
+### Frontend notes (how it uses the API)
+
+- The UI is a React SPA (Vite) with MUI components.
+- **Routing:** Auth screens (login/register) and protected app screens (projects list, project detail).
+- **Auth/session behavior:**
+  - The backend sets an `authToken` cookie on login/register; the UI also supports using the returned JWT for API calls.
+  - The API client attaches credentials/tokens automatically and surfaces friendly errors (e.g., 401 → requires login, 403 → “forbidden” messaging).
+- **Server state (TanStack Query):**
+  - Project detail and tasks are fetched/cached via query keys and **invalidated** after task create/update/delete.
+  - Errors and loading states are rendered as dedicated UI states.
+- **Tasks UX details:**
+  - **Filters:** status filter plus assignee filter (all / me / unassigned). “Unassigned” is handled client-side while the backend assignee filter expects a UUID.
+  - **Optimistic updates:** status changes update immediately; on failure, the UI reverts to the previous task list and shows an error.
+  - **Create/Edit modal validation (zod):** title required; description optional; assignee nullable; due date must be `YYYY-MM-DD` when provided.
 
 ### Swagger (OpenAPI)
 
@@ -233,6 +262,6 @@ Most successful JSON responses use:
 - **Security:** Per-route rate limits, refresh tokens or shorter access tokens.
 - **Observability:** Request IDs, consistent structured logging on every line, and basic route-level metrics (latency, errors).
 - **API contract:** Keep Swagger in sync with Zod by generating or checking OpenAPI from the same schemas.
-- **Frontend:** Ship the React frontend.
+- **Frontend:** Add richer UX (assignee picker backed by a real users endpoint, better keyboard shortcuts, and stronger empty/error state coverage across all pages).
 
 Shortcuts: Code structure and architecture are my own design; I used AI only for some repetitive tasks which are known to me.

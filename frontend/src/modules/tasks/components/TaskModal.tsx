@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 
 import { toApiError } from "../../../shared/utils/apiErrors";
+import { taskUpsertSchema } from "../task.schemas";
 import type { Task, TaskPriority, TaskStatus } from "../../../types/tasks";
 
 type TaskDraft = {
@@ -57,12 +58,14 @@ export function TaskModal({
   const [draft, setDraft] = useState<TaskDraft>(() => toDraft(task));
   const [submitting, setSubmitting] = useState(false);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [dueDateError, setDueDateError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setDraft(toDraft(task));
     setTitleError(null);
+    setDueDateError(null);
     setSubmitError(null);
   }, [open, task]);
 
@@ -73,21 +76,34 @@ export function TaskModal({
 
   async function handleSave() {
     setTitleError(null);
+    setDueDateError(null);
     setSubmitError(null);
-    if (!draft.title.trim()) {
-      setTitleError("Title is required");
+    const parsed = taskUpsertSchema.safeParse({
+      title: draft.title.trim(),
+      description: draft.description.trim() ? draft.description.trim() : undefined,
+      status: draft.status,
+      priority: draft.priority,
+      assigneeId: draft.assigneeId,
+      dueDate: draft.dueDate ? draft.dueDate : null,
+    });
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0];
+        if (key === "title") setTitleError(issue.message);
+        if (key === "dueDate") setDueDateError(issue.message);
+      }
       return;
     }
     try {
       setSubmitting(true);
       await onSave(
         {
-          title: draft.title.trim(),
-          description: draft.description.trim() ? draft.description.trim() : null,
-          status: draft.status,
-          priority: draft.priority,
-          assigneeId: draft.assigneeId,
-          dueDate: draft.dueDate ? draft.dueDate : null,
+          title: parsed.data.title,
+          description: parsed.data.description ? parsed.data.description : null,
+          status: parsed.data.status,
+          priority: parsed.data.priority,
+          assigneeId: parsed.data.assigneeId,
+          dueDate: parsed.data.dueDate,
         },
         task?.id,
       );
@@ -96,7 +112,12 @@ export function TaskModal({
       const apiError = toApiError(error);
       if (apiError.kind === "validation") {
         setTitleError(apiError.fields.title ?? null);
+        setDueDateError(apiError.fields.due_date ?? null);
         setSubmitError(apiError.fields.description ?? null);
+        return;
+      }
+      if (apiError.kind === "forbidden") {
+        setSubmitError("You don’t have permission to modify this task.");
         return;
       }
       setSubmitError(apiError.message);
@@ -116,6 +137,10 @@ export function TaskModal({
       onClose();
     } catch (error) {
       const apiError = toApiError(error);
+      if (apiError.kind === "forbidden") {
+        setSubmitError("You don’t have permission to delete this task.");
+        return;
+      }
       setSubmitError(apiError.message);
     } finally {
       setSubmitting(false);
@@ -221,6 +246,8 @@ export function TaskModal({
               onChange={(e) => setDraft((d) => ({ ...d, dueDate: e.target.value }))}
               InputLabelProps={{ shrink: true }}
               size="small"
+              error={Boolean(dueDateError)}
+              helperText={dueDateError ?? " "}
             />
           </Box>
         </Box>
