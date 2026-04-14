@@ -4,13 +4,6 @@
 
 **TaskFlow** is a full-stack task management application: users can register, sign in, manage projects, and work with tasks via a React UI (plus a documented REST API).
 
-**Frontend highlights**
-
-- **Authentication:** Login/Register forms with client-side validation and clear error handling; session persists across refresh.
-- **Projects:** Browse projects you can access, open a project detail view.
-- **Tasks (per project):** Create/edit tasks in a modal, delete tasks (when authorized), filter tasks by **status** and **assignee** (all / me / unassigned), and update task **status** with optimistic UI.
-- **UX states:** Loading, empty, and error states are explicitly rendered (no blank screens).
-
 **Tech stack**
 
 | Layer      | Technology                                                                                                |
@@ -163,7 +156,7 @@ After seed runs (`RUN_SEED=1` in Docker by default), log in without registering:
   - Project detail and tasks are fetched/cached via query keys and **invalidated** after task create/update/delete.
   - Errors and loading states are rendered as dedicated UI states.
 - **Tasks UX details:**
-  - **Filters:** status filter plus assignee filter (all / me / unassigned). “Unassigned” is handled client-side while the backend assignee filter expects a UUID.
+  - **Filters:** status filter plus assignee filter.
   - **Optimistic updates:** status changes update immediately; on failure, the UI reverts to the previous task list and shows an error.
   - **Create/Edit modal validation (zod):** title required; description optional; assignee nullable; due date must be `YYYY-MM-DD` when provided.
 
@@ -258,10 +251,13 @@ Most successful JSON responses use:
 ## 8. What I’d Do With More Time
 
 - **Tests:** Integration tests for auth, projects, and tasks.
-- **Pagination:** ?page / ?limit on list endpoints.
+- **Pagination:** `?page` / `?limit` on list endpoints like projects & tasks.
 - **Security:** Per-route rate limits, refresh tokens or shorter access tokens.
 - **Observability:** Request IDs, consistent structured logging on every line, and basic route-level metrics (latency, errors).
 - **API contract:** Keep Swagger in sync with Zod by generating or checking OpenAPI from the same schemas.
-- **Frontend:** Add richer UX (assignee picker backed by a real users endpoint, better keyboard shortcuts, and stronger empty/error state coverage across all pages).
+- **UX/UI:** Add richer UX (assignee picker backed by a real users endpoint, better keyboard shortcuts, and stronger empty/error state coverage across all pages).
+- **Project stats:** Extend `/projects/:id/stats` and surface it in the UI (task counts by status/assignee, trends, overdue counts).
+- **Drag-and-drop tasks:** Kanban-style board interactions to move tasks across `todo → in_progress → done`.
+- **Dark mode:** Theme toggle that persists across sessions.
 
 Shortcuts: Code structure and architecture are my own design; I used AI only for some repetitive tasks which are known to me.
