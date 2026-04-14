@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -13,6 +14,7 @@ import {
   TextField,
 } from "@mui/material";
 
+import { toApiError } from "../../../shared/utils/apiErrors";
 import type { Task, TaskPriority, TaskStatus } from "../../../types/tasks";
 
 type TaskDraft = {
@@ -42,6 +44,7 @@ export function TaskModal({
   currentUserId,
   onClose,
   onSave,
+  onDelete,
 }: {
   open: boolean;
   mode: "create" | "edit";
@@ -49,13 +52,18 @@ export function TaskModal({
   currentUserId: string;
   onClose: () => void;
   onSave: (next: Omit<Task, "id">, existingId?: string) => Promise<void> | void;
+  onDelete?: (taskId: string) => Promise<void> | void;
 }) {
   const [draft, setDraft] = useState<TaskDraft>(() => toDraft(task));
   const [submitting, setSubmitting] = useState(false);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open) setDraft(toDraft(task));
+    if (!open) return;
+    setDraft(toDraft(task));
+    setTitleError(null);
+    setSubmitError(null);
   }, [open, task]);
 
   const canSubmit = useMemo(
@@ -65,6 +73,7 @@ export function TaskModal({
 
   async function handleSave() {
     setTitleError(null);
+    setSubmitError(null);
     if (!draft.title.trim()) {
       setTitleError("Title is required");
       return;
@@ -83,6 +92,31 @@ export function TaskModal({
         task?.id,
       );
       onClose();
+    } catch (error) {
+      const apiError = toApiError(error);
+      if (apiError.kind === "validation") {
+        setTitleError(apiError.fields.title ?? null);
+        setSubmitError(apiError.fields.description ?? null);
+        return;
+      }
+      setSubmitError(apiError.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!task?.id || !onDelete) return;
+    setSubmitError(null);
+    const ok = window.confirm("Delete this task? This cannot be undone.");
+    if (!ok) return;
+    try {
+      setSubmitting(true);
+      await onDelete(task.id);
+      onClose();
+    } catch (error) {
+      const apiError = toApiError(error);
+      setSubmitError(apiError.message);
     } finally {
       setSubmitting(false);
     }
@@ -93,6 +127,7 @@ export function TaskModal({
       <DialogTitle>{mode === "create" ? "Create task" : "Edit task"}</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1, display: "grid", gap: 2 }}>
+          {submitError ? <Alert severity="error">{submitError}</Alert> : null}
           <TextField
             label="Title"
             value={draft.title}
@@ -191,6 +226,15 @@ export function TaskModal({
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
+        {mode === "edit" && task?.id && onDelete ? (
+          <Button
+            onClick={() => void handleDelete()}
+            disabled={submitting}
+            color="error"
+          >
+            Delete
+          </Button>
+        ) : null}
         <Button onClick={onClose} disabled={submitting}>
           Cancel
         </Button>

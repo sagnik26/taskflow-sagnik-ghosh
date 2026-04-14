@@ -1,52 +1,84 @@
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { useAuthStore } from "../../../store";
 import type { LoginInput, RegisterInput } from "../schemas/auth.schemas";
-import type { User } from "../../../types/auth";
 import { AuthContext, type AuthContextValue } from "./auth.context";
-
-function createMockUser(input: { name?: string; email: string }): User {
-  return {
-    id: crypto.randomUUID(),
-    name: input.name ?? "Test User",
-    email: input.email,
-  };
-}
+import * as authApi from "../../../api/auth.api";
+import { toApiError } from "../../../shared/utils/apiErrors";
 
 export function AuthContextProvider({ children }: { children: ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const clear = useAuthStore((s) => s.clear);
 
+  const [isBootstrapped, setIsBootstrapped] = useState(false);
+  const bootstrapRunningRef = useRef(false);
+
+  const bootstrap = useCallback(async () => {
+    if (bootstrapRunningRef.current) return;
+    bootstrapRunningRef.current = true;
+    try {
+      const profile = await authApi.getProfile();
+      setUser(profile);
+    } catch (err) {
+      const apiError = toApiError(err);
+      // If the cookie is missing/expired, treat as logged out.
+      if (apiError.kind === "unauthorized") {
+        clear();
+      }
+    } finally {
+      setIsBootstrapped(true);
+      bootstrapRunningRef.current = false;
+    }
+  }, [clear, setUser]);
+
   const login = useCallback(
     async (input: LoginInput) => {
-      // Phase A mock: accept any credentials
-      setUser(createMockUser({ email: input.email }));
+      const { email, password } = input;
+      if (typeof email !== "string" || typeof password !== "string") {
+        throw new Error("Invalid login input");
+      }
+      const nextUser = await authApi.login({ email, password });
+      setUser(nextUser);
     },
     [setUser],
   );
 
   const register = useCallback(
     async (input: RegisterInput) => {
-      // Phase A mock: accept any registration
-      setUser(createMockUser({ name: input.name, email: input.email }));
+      const { name, email, password } = input;
+      if (
+        typeof name !== "string" ||
+        typeof email !== "string" ||
+        typeof password !== "string"
+      ) {
+        throw new Error("Invalid registration input");
+      }
+      const nextUser = await authApi.register({ name, email, password });
+      setUser(nextUser);
     },
     [setUser],
   );
 
-  const logout = useCallback(() => {
-    clear();
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } finally {
+      clear();
+    }
   }, [clear]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isAuthenticated: Boolean(user),
+      isBootstrapped,
+      bootstrap,
       login,
       register,
       logout,
     }),
-    [login, logout, register, user],
+    [bootstrap, isBootstrapped, login, logout, register, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

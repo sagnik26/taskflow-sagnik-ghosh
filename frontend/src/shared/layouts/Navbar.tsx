@@ -41,8 +41,7 @@ export function Navbar() {
                 variant="outlined"
                 startIcon={<LogoutIcon />}
                 onClick={() => {
-                  logout();
-                  navigate("/login");
+                  void logout().finally(() => navigate("/login"));
                 }}
               >
                 Logout

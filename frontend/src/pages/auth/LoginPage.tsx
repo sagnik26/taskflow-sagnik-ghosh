@@ -16,6 +16,7 @@ import {
   type LoginInput,
 } from "../../modules/auth/schemas/auth.schemas";
 import { useAuth } from "../../modules/auth/context/useAuth.ts";
+import { handleAuthFormError } from "../../shared/utils/authFormErrors";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -52,8 +53,15 @@ export function LoginPage() {
       setSubmitting(true);
       await login(parsed.data);
       navigate("/projects");
-    } catch {
-      setFormError("Login failed. Please try again.");
+    } catch (err) {
+      handleAuthFormError<keyof LoginInput>({
+        error: err,
+        allowedFieldKeys: ["email", "password"],
+        setFieldErrors,
+        setFormError,
+        unauthorizedMessage: "Invalid email or password.",
+        defaultMessage: "Login failed. Please try again.",
+      });
     } finally {
       setSubmitting(false);
     }

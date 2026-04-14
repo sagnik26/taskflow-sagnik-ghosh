@@ -32,3 +32,7 @@ export async function getProfile(): Promise<User> {
   return extractResponseData<User>(res.data);
 }
 
+export async function logout(): Promise<void> {
+  await apiClient.post("/auth/logout");
+}
+

@@ -1,5 +1,7 @@
 import axios from "axios";
 
+import { useAuthStore } from "../../store";
+
 /**
  * Axios instance for TaskFlow API.
  *
@@ -14,10 +16,9 @@ export const apiClient = axios.create({
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    const status = error?.response?.status;
+    const status = error?.response?.status as number | undefined;
     if (status === 401) {
-      // Keep this decoupled from React Router/AuthContext.
-      // The app can rely on a hard redirect to reset protected state quickly.
+      useAuthStore.getState().clear();
       if (window.location.pathname !== "/login") {
         window.location.assign("/login");
       }

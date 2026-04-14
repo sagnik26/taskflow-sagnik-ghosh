@@ -16,6 +16,7 @@ import {
   type RegisterInput,
 } from "../../modules/auth/schemas/auth.schemas";
 import { useAuth } from "../../modules/auth/context/useAuth.ts";
+import { handleAuthFormError } from "../../shared/utils/authFormErrors";
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -59,8 +60,15 @@ export function RegisterPage() {
       setSubmitting(true);
       await register(parsed.data);
       navigate("/projects");
-    } catch {
-      setFormError("Registration failed. Please try again.");
+    } catch (err) {
+      handleAuthFormError<keyof RegisterInput>({
+        error: err,
+        allowedFieldKeys: ["name", "email", "password"],
+        setFieldErrors,
+        setFormError,
+        conflictMessage: "An account with this email already exists.",
+        defaultMessage: "Registration failed. Please try again.",
+      });
     } finally {
       setSubmitting(false);
     }

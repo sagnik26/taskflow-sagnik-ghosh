@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -8,6 +9,8 @@ import {
   DialogTitle,
   TextField,
 } from "@mui/material";
+
+import { toApiError } from "../../../shared/utils/apiErrors";
 
 export type CreateProjectValues = {
   name: string;
@@ -29,6 +32,7 @@ export function CreateProjectModal({
   });
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ name?: string }>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const canSubmit = useMemo(
     () => values.name.trim().length > 0 && !submitting,
@@ -37,6 +41,7 @@ export function CreateProjectModal({
 
   async function handleCreate() {
     setErrors({});
+    setSubmitError(null);
     if (!values.name.trim()) {
       setErrors({ name: "Project name is required" });
       return;
@@ -49,6 +54,13 @@ export function CreateProjectModal({
       });
       setValues({ name: "", description: "" });
       onClose();
+    } catch (error) {
+      const apiError = toApiError(error);
+      if (apiError.kind === "validation") {
+        setErrors({ name: apiError.fields.name });
+      } else {
+        setSubmitError(apiError.message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -59,6 +71,7 @@ export function CreateProjectModal({
       <DialogTitle>Create project</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1, display: "grid", gap: 2 }}>
+          {submitError ? <Alert severity="error">{submitError}</Alert> : null}
           <TextField
             label="Name"
             value={values.name}

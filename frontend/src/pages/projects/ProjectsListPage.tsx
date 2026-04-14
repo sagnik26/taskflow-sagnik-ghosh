@@ -12,48 +12,64 @@ import {
 import Grid from "@mui/material/Grid";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { EmptyState } from "../../shared/ui/EmptyState";
+import { ErrorState } from "../../shared/ui/ErrorState";
+import { LoadingState } from "../../shared/ui/LoadingState";
 import {
   CreateProjectModal,
   type CreateProjectValues,
 } from "../../modules/projects/components/CreateProjectModal";
 import type { Project } from "../../types/projects";
-
-function createMockProjects(): Project[] {
-  return [
-    {
-      id: "p1",
-      name: "Website Redesign",
-      description: "Q2 website redesign project",
-    },
-    {
-      id: "p2",
-      name: "Hiring Pipeline",
-      description: "Streamline screening + take-home evaluation process",
-    },
-  ];
-}
+import { createProject, listProjects } from "../../api/projects.api";
+import { toApiError } from "../../shared/utils/apiErrors";
 
 export function ProjectsListPage() {
   const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
-  const [projects, setProjects] = useState<Project[]>(() => createMockProjects());
+  const queryClient = useQueryClient();
 
-  const hasProjects = projects.length > 0;
+  const projectsQuery = useQuery({
+    queryKey: ["projects"],
+    queryFn: listProjects,
+  });
 
   const sorted = useMemo(() => {
-    return [...projects].sort((a, b) => a.name.localeCompare(b.name));
-  }, [projects]);
+    const list = (projectsQuery.data ?? []) as Project[];
+    return [...list].sort((a, b) => a.name.localeCompare(b.name));
+  }, [projectsQuery.data]);
+
+  const createMutation = useMutation({
+    mutationFn: createProject,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
 
   async function onCreate(values: CreateProjectValues) {
-    const next: Project = {
-      id: crypto.randomUUID(),
+    await createMutation.mutateAsync({
       name: values.name,
       description: values.description ? values.description : null,
-    };
-    setProjects((prev) => [next, ...prev]);
+    });
   }
+
+  if (projectsQuery.isLoading) {
+    return <LoadingState label="Loading projects…" />;
+  }
+
+  if (projectsQuery.isError) {
+    const err = toApiError(projectsQuery.error);
+    return (
+      <ErrorState
+        message={err.message}
+        actionLabel="Retry"
+        onAction={() => void projectsQuery.refetch()}
+      />
+    );
+  }
+
+  const hasProjects = sorted.length > 0;
 
   return (
     <Box sx={{ display: "grid", gap: 2.5 }}>

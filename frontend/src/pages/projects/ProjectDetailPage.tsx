@@ -4,198 +4,63 @@ import {
   Box,
   Button,
   Divider,
+  Alert,
   Paper,
   Stack,
   Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../../modules/auth/context/useAuth.ts";
+import { getProject } from "../../api/projects.api";
+import { createTask, deleteTask, listTasks, updateTask } from "../../api/tasks.api";
+import { toApiError } from "../../shared/utils/apiErrors";
 import { EmptyState } from "../../shared/ui/EmptyState";
+import { ErrorState } from "../../shared/ui/ErrorState";
+import { LoadingState } from "../../shared/ui/LoadingState";
 import {
   TaskFilters,
   type TaskAssigneeFilter,
 } from "../../modules/tasks/components/TaskFilters.tsx";
 import { TaskList } from "../../modules/tasks/components/TaskList.tsx";
 import { TaskModal } from "../../modules/tasks/components/TaskModal.tsx";
-import type { Project } from "../../types/projects";
 import type { Task, TaskStatus } from "../../types/tasks";
-
-function mockProjectById(id: string): Project | null {
-  const projects: Project[] = [
-    {
-      id: "p1",
-      name: "Website Redesign",
-      description: "Q2 website redesign project",
-    },
-    {
-      id: "p2",
-      name: "Hiring Pipeline",
-      description: "Streamline screening + take-home evaluation process",
-    },
-  ];
-  return projects.find((p) => p.id === id) ?? null;
-}
-
-function mockTasks(projectId: string, currentUserId: string): Task[] {
-  if (projectId === "p1") {
-    return [
-      {
-        id: "t1",
-        title: "Design homepage",
-        description: "Create initial Figma frames for hero + navigation.",
-        status: "todo",
-        priority: "high",
-        assigneeId: currentUserId,
-        dueDate: "2026-04-25",
-      },
-      {
-        id: "t1b",
-        title: "Audit existing UI components",
-        description:
-          "List reusable components and missing states (loading/empty/error).",
-        status: "todo",
-        priority: "medium",
-        assigneeId: null,
-        dueDate: "2026-04-22",
-      },
-      {
-        id: "t1c",
-        title: "Create design tokens",
-        description:
-          "Define spacing, typography, and color usage for consistency.",
-        status: "todo",
-        priority: "low",
-        assigneeId: currentUserId,
-        dueDate: null,
-      },
-      {
-        id: "t1d",
-        title: "Write content outline",
-        description: null,
-        status: "todo",
-        priority: "medium",
-        assigneeId: null,
-        dueDate: null,
-      },
-      {
-        id: "t2",
-        title: "Implement auth flow",
-        description: "Login + register pages with validations.",
-        status: "in_progress",
-        priority: "medium",
-        assigneeId: currentUserId,
-        dueDate: null,
-      },
-      {
-        id: "t2b",
-        title: "Hook up task modal",
-        description: "Support create/edit with client-side zod validation.",
-        status: "in_progress",
-        priority: "high",
-        assigneeId: currentUserId,
-        dueDate: "2026-04-20",
-      },
-      {
-        id: "t2c",
-        title: "Add optimistic status updates",
-        description: "Update UI immediately, revert on API error.",
-        status: "in_progress",
-        priority: "medium",
-        assigneeId: null,
-        dueDate: null,
-      },
-      {
-        id: "t3",
-        title: "Write API docs",
-        description: null,
-        status: "done",
-        priority: "low",
-        assigneeId: null,
-        dueDate: null,
-      },
-      {
-        id: "t3b",
-        title: "Set up project skeleton",
-        description: "Vite + MUI + router wired with basic layout.",
-        status: "done",
-        priority: "medium",
-        assigneeId: currentUserId,
-        dueDate: null,
-      },
-      {
-        id: "t3c",
-        title: "Create project detail page",
-        description: "Project header + tasks section + filters.",
-        status: "done",
-        priority: "high",
-        assigneeId: currentUserId,
-        dueDate: null,
-      },
-    ];
-  }
-
-  return [
-    {
-      id: "t4",
-      title: "Define rubric checklist",
-      description: "Make sure UI has loading/error/empty states everywhere.",
-      status: "todo",
-      priority: "medium",
-      assigneeId: null,
-      dueDate: null,
-    },
-    {
-      id: "t5",
-      title: "Polish navbar layout",
-      description: "Ensure responsive spacing and clear logout affordance.",
-      status: "todo",
-      priority: "low",
-      assigneeId: currentUserId,
-      dueDate: null,
-    },
-    {
-      id: "t6",
-      title: "Refactor task card UI",
-      description: "Improve spacing and alignment for status/priority chips.",
-      status: "in_progress",
-      priority: "medium",
-      assigneeId: currentUserId,
-      dueDate: null,
-    },
-    {
-      id: "t7",
-      title: "Add empty state components",
-      description: null,
-      status: "done",
-      priority: "low",
-      assigneeId: null,
-      dueDate: null,
-    },
-  ];
-}
 
 export function ProjectDetailPage() {
   const params = useParams();
   const projectId = params.id ?? "";
-  const project = mockProjectById(projectId);
 
   const { user } = useAuth();
   const currentUserId = user?.id ?? "me";
+
+  const queryClient = useQueryClient();
+  const projectQuery = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: () => getProject(projectId),
+    enabled: Boolean(projectId),
+  });
+
+  const tasksQuery = useQuery({
+    queryKey: ["tasks", projectId],
+    queryFn: () => listTasks(projectId),
+    enabled: Boolean(projectId),
+  });
 
   const [filters, setFilters] = useState<{
     status: TaskStatus | "all";
     assignee: TaskAssigneeFilter;
   }>({ status: "all", assignee: "all" });
 
-  const [tasks, setTasks] = useState<Task[]>(() =>
-    mockTasks(projectId, currentUserId),
-  );
-
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [taskModalMode, setTaskModalMode] = useState<"create" | "edit">("create");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [tasksActionError, setTasksActionError] = useState<string | null>(null);
+
+  const tasks = useMemo(() => {
+    return (tasksQuery.data ?? []) as Task[];
+  }, [tasksQuery.data]);
 
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
@@ -208,11 +73,96 @@ export function ProjectDetailPage() {
     });
   }, [currentUserId, filters.assignee, filters.status, tasks]);
 
+  const createTaskMutation = useMutation({
+    mutationFn: (payload: Omit<Task, "id">) => {
+      if (!projectId) throw new Error("projectId is required");
+      return createTask(projectId, {
+        title: payload.title,
+        description: payload.description,
+        status: payload.status,
+        priority: payload.priority,
+        assigneeId: payload.assigneeId,
+        dueDate: payload.dueDate,
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+    },
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: ({
+      taskId,
+      patch,
+    }: {
+      taskId: string;
+      patch: Partial<Omit<Task, "id">>;
+    }) => updateTask(taskId, patch),
+    onMutate: async ({ taskId, patch }) => {
+      setTasksActionError(null);
+      await queryClient.cancelQueries({ queryKey: ["tasks", projectId] });
+      const previous = queryClient.getQueryData(["tasks", projectId]) as
+        | Task[]
+        | undefined;
+      if (previous) {
+        queryClient.setQueryData(["tasks", projectId], (curr) => {
+          const list = (curr as Task[] | undefined) ?? [];
+          return list.map((t) => (t.id === taskId ? { ...t, ...patch } : t));
+        });
+      }
+      return { previous };
+    },
+    onError: (error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["tasks", projectId], context.previous);
+      }
+      setTasksActionError(toApiError(error).message);
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+    },
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: (taskId: string) => deleteTask(taskId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+    },
+  });
+
+  if (projectQuery.isLoading) {
+    return <LoadingState label="Loading project…" />;
+  }
+
+  if (projectQuery.isError) {
+    const err = toApiError(projectQuery.error);
+    if (err.kind === "not_found") {
+      return (
+        <EmptyState
+          title="Project not found"
+          description="The project you’re looking for doesn’t exist (or you don’t have access)."
+          actionLabel="Back to projects"
+          actionHref="/projects"
+        />
+      );
+    }
+    return (
+      <ErrorState
+        message={err.message}
+        actionLabel="Retry"
+        onAction={() => void projectQuery.refetch()}
+      />
+    );
+  }
+
+  const project = projectQuery.data;
   if (!project) {
     return (
       <EmptyState
         title="Project not found"
-        description="This project doesn’t exist in the Phase A mock data."
+        description="The project you’re looking for doesn’t exist (or you don’t have access)."
         actionLabel="Back to projects"
         actionHref="/projects"
       />
@@ -221,13 +171,14 @@ export function ProjectDetailPage() {
 
   async function handleSaveTask(next: Omit<Task, "id">, existingId?: string) {
     if (existingId) {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === existingId ? { ...t, ...next } : t)),
-      );
+      await updateTaskMutation.mutateAsync({ taskId: existingId, patch: next });
       return;
     }
-    const created: Task = { id: crypto.randomUUID(), ...next };
-    setTasks((prev) => [created, ...prev]);
+    await createTaskMutation.mutateAsync(next);
+  }
+
+  async function handleDeleteTask(taskId: string) {
+    await deleteTaskMutation.mutateAsync(taskId);
   }
 
   return (
@@ -270,6 +221,7 @@ export function ProjectDetailPage() {
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             Tasks
           </Typography>
+          {tasksActionError ? <Alert severity="error">{tasksActionError}</Alert> : null}
           <TaskFilters
             status={filters.status}
             assignee={filters.assignee}
@@ -278,16 +230,31 @@ export function ProjectDetailPage() {
 
           <Divider />
 
-          {filtered.length === 0 ? (
+          {tasksQuery.isLoading ? (
+            <LoadingState label="Loading tasks…" />
+          ) : tasksQuery.isError ? (
+            <ErrorState
+              message={toApiError(tasksQuery.error).message}
+              actionLabel="Retry"
+              onAction={() => void tasksQuery.refetch()}
+            />
+          ) : tasks.length === 0 ? (
             <EmptyState
-              title="No tasks match your filters"
-              description="Try changing status or assignee filters, or create a new task."
+              title="No tasks yet"
+              description="Create your first task to start tracking work in this project."
               actionLabel="Create task"
               onAction={() => {
                 setTaskModalMode("create");
                 setEditingTask(null);
                 setTaskModalOpen(true);
               }}
+            />
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              title="No tasks match your filters"
+              description="Try changing status or assignee filters."
+              actionLabel="Reset filters"
+              onAction={() => setFilters({ status: "all", assignee: "all" })}
             />
           ) : (
             <TaskList
@@ -299,10 +266,10 @@ export function ProjectDetailPage() {
                 setTaskModalOpen(true);
               }}
               onChangeStatus={(taskId, status) => {
-                // Phase A local optimistic change
-                setTasks((prev) =>
-                  prev.map((t) => (t.id === taskId ? { ...t, status } : t)),
-                );
+                void updateTaskMutation.mutateAsync({
+                  taskId,
+                  patch: { status },
+                });
               }}
             />
           )}
@@ -316,6 +283,7 @@ export function ProjectDetailPage() {
         currentUserId={currentUserId}
         onClose={() => setTaskModalOpen(false)}
         onSave={handleSaveTask}
+        onDelete={handleDeleteTask}
       />
     </Box>
   );
