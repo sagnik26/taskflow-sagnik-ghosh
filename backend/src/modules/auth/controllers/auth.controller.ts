@@ -20,6 +20,13 @@ export class AuthController {
     });
   }
 
+  private clearAuthCookie(res: Response): void {
+    res.clearCookie("authToken", {
+      httpOnly: config.cookie.httpOnly,
+      secure: config.cookie.secure,
+    });
+  }
+
   async register(
     req: Request,
     res: Response,
@@ -74,6 +81,15 @@ export class AuthController {
 
       const profile = await this.authService.getProfile(userId);
       res.status(200).json(ResponseFormatter.success(profile, "Profile fetched"));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      this.clearAuthCookie(res);
+      res.status(200).json(ResponseFormatter.success(null, "Logout successful"));
     } catch (error) {
       next(error);
     }
